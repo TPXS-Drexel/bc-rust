@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Blockchain Demo</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>Let's play With Blockchain</h1>
+    <p>This is the blockchain demonstration application.</p>
+  <p>This application shows the concepts behind the blockchain linked list.</p>
+</div>
+
+<div class="topnav">
+  <a href="#">Home</a>
+  <a href="#">About</a>
+</div>
+
+<div class="row">
+  <div class="firstcolumn">
+    <div class="card">
+      <h2>BUILD YOUR BLOCKCHAIN</h2>
+     <button onclick="document.getElementById('create1').style.display='block'" style="width:auto;">Create New Block</button>
+     <button onclick="document.getElementById('create2').style.display='block'" style="width:auto;">Preference</button>
+     <div id="create2" class="modal">
+    <form class="modal-content animate">
+    <div class="container">
+        <h2>Application Preference</h2>
+        <p>Please, specify your blockchain preferences:</p>
+      <label>Engine</label>
+      <input type="text"><br>
+      <label>Attempts</label>
+      <input type="text"><br>
+      <label>Complexity</label>
+      <input type="text"><br>
+      <label>Proxy Port</label>
+      <input type="text"><br>
+    </div>
+    <div class="container" style="background-color:#f1f1f1">
+      <button type="button" onclick="document.getElementById('create2').style.display='none'" class="cancelbtn">Cancel</button>
+      <button type="button" class="minebtn">Save</button>
+    </div>
+    </form>
+    </div>
+    <div id="create1" class="modal">
+    <form class="modal-content animate">
+    <div class="container">
+        <h2>Create a New Block</h2>
+        <p>Please, enter data for the new block:</p>
+      <textarea rows="4" cols="70" id="textForNew"></textarea>
+    </div>
+    <div class="container" style="background-color:#f1f1f1">
+      <button type="button" onclick="document.getElementById('create1').style.display='none'" class="cancelbtn">Cancel</button>
+      <button type="button" onclick="insert()" class="minebtn">Save</button>
+    </div>
+    </form>
+    </div>
+    </div>
+    <div class="card row" id="elemID">
+    </div>
+  </div>
+  
+</div>
+<script>
+    
+    var modal = document.getElementById('create1');
+    var modal2 = document.getElementById('create2');
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+        
+        if (event.target == modal2) {
+            modal2.style.display = "none";
+        }
+    }
+       
+    function insert() {
+        var datatxt = document.getElementById("textForNew").value
+        if (datatxt == "" || datatxt == null) {
+            alert("Please, type the data for the new block");
+            return false;
+        }
+        document.getElementById('create1').style.display='none'
+        document.getElementById('elemID').innerHTML += 
+            '<div class="column" style="background-color: aquamarine;">' +
+            '<form style="padding: 10px">' + '<h2>Blockchain Block</h2>' + 
+            '<label>Block</label>' +
+            '<input type="text"><br>' + '<label>Parent</label>' + '<input type="text"><br>' + 
+            '<label>Block Data</label>' + '<textarea id="display1" style="width: 100%; height:80px" id="display1">'+ datatxt + '</textarea>' + '<label>Nonce</label>' + '<input type="text"><br>' + '<label>Hash</label>' + '<input type="text"><br>' + 
+            '<button style="width:auto;">Submit</button>' + 
+            '</form>' + '</div>'
+    }
+    
+</script>
+</body>
+</html>
