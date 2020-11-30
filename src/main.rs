@@ -127,10 +127,14 @@ fn main() {
     println!("nonced hash: {}", nonced_hash_string(input, prev_hash, nonce));
 
     let mut bc = Blockchain::new(input);
-    let mut blocka = &mut bc.blocks[0];
+    let blocka = &mut bc.blocks[0];
     let mined = Block::mine_block(blocka, max_nonce, leading_zeros);
     println!("{:?}", mined);
 
+    Blockchain::add_block(&mut bc, "block2" );
+    let blockb = &mut bc.blocks[1];
+    let mined = Block::mine_block(blockb, max_nonce, leading_zeros);
+    println!("{:?}", mined);
 }
 
 pub fn create_nonce_vec(max_nonce: u64) -> Vec<u64> {
