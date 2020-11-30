@@ -19,7 +19,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 const HASH_BYTE_SIZE: usize = 32;
 pub type Sha256Hash = [u8; HASH_BYTE_SIZE];
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block {
     prev_block_hash: Sha256Hash,
     //prev_block_hash_string: String,
@@ -93,6 +93,7 @@ impl Blockchain {
         if !self.blocks.last().unwrap().mined {
             let prev_block = &mut self.blocks.pop().unwrap();
             Block::mine_block(prev_block, max_nonce, leading_zeros);
+            self.blocks.push(prev_block.to_owned());
         }
         let block = Block::new(data, self.blocks.last().unwrap().hash);
         self.blocks.push(block);
@@ -131,8 +132,8 @@ fn main() {
 
     let mut bc = Blockchain::new(input);
     let blocka = &mut bc.blocks[0];
-    let mined = Block::mine_block(blocka, max_nonce, leading_zeros);
-    println!("{:?}", mined);
+    //let mined = Block::mine_block(blocka, max_nonce, leading_zeros);
+    println!("{:?}", blocka);
 
     Blockchain::add_block(&mut bc, "block2", max_nonce, leading_zeros);
     let blockb = &mut bc.blocks[1];
