@@ -89,8 +89,11 @@ impl Blockchain {
         }
     }
 
-    pub fn add_block(&mut self, data: &str) {
-
+    pub fn add_block(&mut self, data: &str, max_nonce: u64, leading_zeros: u64) {
+        if !self.blocks.last().unwrap().mined {
+            let prev_block = &mut self.blocks.pop().unwrap();
+            Block::mine_block(prev_block, max_nonce, leading_zeros);
+        }
         let block = Block::new(data, self.blocks.last().unwrap().hash);
         self.blocks.push(block);
     }
@@ -131,7 +134,7 @@ fn main() {
     let mined = Block::mine_block(blocka, max_nonce, leading_zeros);
     println!("{:?}", mined);
 
-    Blockchain::add_block(&mut bc, "block2" );
+    Blockchain::add_block(&mut bc, "block2", max_nonce, leading_zeros);
     let blockb = &mut bc.blocks[1];
     let mined = Block::mine_block(blockb, max_nonce, leading_zeros);
     println!("{:?}", mined);
