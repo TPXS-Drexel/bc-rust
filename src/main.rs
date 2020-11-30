@@ -111,6 +111,7 @@ fn main() {
     println!("Vector Creation Time: {:2?}", vector_creation_time);
     let mut rv = &mut nonce_vec;
     let rr1 = &mut rv;
+    //let input = "";
     let before = Instant::now();
     let prev_hash = Sha256Hash::default(); //genesis block
     let nonce = find_nonce(input, prev_hash, rr1 , leading_zeros);
