@@ -135,6 +135,7 @@ fn main() {
 
     //demo of functions above ^^
 
+    //ACTUAL USE OF FUNCTIONS:
     //TAKE FIRST INPUT
     //MATCH STATEMENT FOR LEADING ZEROS CHANGED
     let mut bc = Blockchain::new(input);
