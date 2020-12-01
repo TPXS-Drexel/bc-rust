@@ -102,8 +102,8 @@ impl Blockchain {
 
 fn main() {
     //INPUTS
-    let leading_zeros: u64 = 5;
-    let max_nonce = 1_500_000;
+    let leading_zeros: u64 = 3;
+    let max_nonce = 1_000_000;
     let input = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
     //END INPUTS
     let before = Instant::now();
@@ -153,9 +153,10 @@ fn main() {
     let blockb = &mut bc.blocks[1];
     let mined = Block::mine_block(blockb, max_nonce, leading_zeros);
     println!("{:?}", mined);
+    println!("{:?}", hex::encode(mined.hash));
 
     //to change to hex 
-    //hex::encode(blockb.prev_block_hash)
+    
 }
 
 pub fn create_nonce_vec(max_nonce: u64) -> Vec<u64> {
