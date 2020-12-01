@@ -101,9 +101,11 @@ impl Blockchain {
 }
 
 fn main() {
-    let leading_zeros: u64 = 3;
-    let max_nonce = 1_000_000;
+    //INPUTS
+    let leading_zeros: u64 = 5;
+    let max_nonce = 1_500_000;
     let input = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
+    //END INPUTS
     let before = Instant::now();
     let mut nonce_vec: Vec<u64> = create_nonce_vec(max_nonce);
     let vector_creation_time = before.elapsed();
@@ -131,15 +133,29 @@ fn main() {
     println!("Time: {:2?}", elapsed);
     println!("nonced hash: {}", nonced_hash_string(input, prev_hash, nonce));
 
+    //demo of functions above ^^
+
+    //TAKE FIRST INPUT
+    //MATCH STATEMENT FOR LEADING ZEROS CHANGED
     let mut bc = Blockchain::new(input);
+
+    //todo: make threads for server i/o
+
+    //BEGIN A LOOP
     let blocka = &mut bc.blocks[0];
-    //let mined = Block::mine_block(blocka, max_nonce, leading_zeros);
+    //SOME MATCH STATEMENT
+    let mined = Block::mine_block(blocka, max_nonce, leading_zeros);
+
+
     println!("{:?}", blocka);
 
     Blockchain::add_block(&mut bc, "block2", max_nonce, leading_zeros);
     let blockb = &mut bc.blocks[1];
     let mined = Block::mine_block(blockb, max_nonce, leading_zeros);
     println!("{:?}", mined);
+
+    //to change to hex 
+    //hex::encode(blockb.prev_block_hash)
 }
 
 pub fn create_nonce_vec(max_nonce: u64) -> Vec<u64> {
