@@ -1,25 +1,71 @@
 //use sha2::{Sha256, Digest};
-use num_bigint::BigUint;
-use num_traits::One;
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use hex::encode;
-use std::time::Instant;
+use num_bigint::BigUint;
+use num_traits::One;
 use rayon::prelude::*;
+use std::time::Instant;
 /*
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 */
+//serde
+extern crate serde;
+extern crate serde_json;
+#[macro_use]
+extern crate serde_derive;
 
+use serde::{Deserialize, Serialize};
+use serde_json::{Result, Value};
 
 //todo: move into inputs
-
 
 const HASH_BYTE_SIZE: usize = 32;
 pub type Sha256Hash = [u8; HASH_BYTE_SIZE];
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+pub struct Input {
+    content: String,
+    leading_zeros: u64,
+    max_nonce: u64,
+}
+
+// impl Input {
+//     pub fn new(content: &str, leading_zeros: u64, max_nonce: u64) -> Self {
+//         let mut s = Self {
+//             content: content.to_owned().into(),
+//             leading_zeros: leading_zeros.to_owned().into(),
+//             max_nonce: max_nonce.to_owned().into(),
+//         };
+//         s
+//     }
+
+//     pub fn genesis(content: &str, leading_zeros: u64, max_nonce: u64) -> Self {
+//         Self::new(content, leading_zeros, max_nonce)
+//     }
+// }
+
+// pub struct QueueInput {
+//     inputs: Vec<Input>,
+// }
+
+// impl QueueInput {
+//     pub fn new(content: &str, leading_zeros: u64, max_nonce: u64) -> Self {
+//         let inputs = Input::genesis(content, leading_zeros, max_nonce);
+//         Self {
+//             inputs: vec![inputs],
+//         }
+//     }
+
+//     pub fn add_input(&mut self, content: &str, max_nonce: u64, leading_zeros: u64) {
+//         let input = Input::new(content, leading_zeros, max_nonce);
+//         self.inputs.push(input);
+//     }
+// }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
     prev_block_hash: Sha256Hash,
     //prev_block_hash_string: String,
@@ -27,10 +73,8 @@ pub struct Block {
 
     data: Vec<u8>,
     //data_string: String,
-
     hash: Sha256Hash,
     //hash_string: String,
-
     mined: bool,
     mining_time: std::time::Duration,
 }
@@ -55,7 +99,7 @@ impl Block {
         Self::new(data, Sha256Hash::default())
     }
 
-    pub fn mine_block(&mut self, max_nonce: u64, leading_zeros: u64) -> &Self{
+    pub fn mine_block(&mut self, max_nonce: u64, leading_zeros: u64) -> &Self {
         let before = Instant::now();
         let mut nonce_vec = create_nonce_vec(max_nonce);
         let mut rv = &mut nonce_vec;
@@ -72,11 +116,10 @@ impl Block {
         } else {
             self
         }
-
     }
 }
 
-
+#[derive(Serialize, Deserialize)]
 pub struct Blockchain {
     blocks: Vec<Block>,
 }
@@ -85,7 +128,7 @@ impl Blockchain {
     pub fn new(data: &str) -> Self {
         let blocks = Block::genesis(data);
         Self {
-            blocks: vec![blocks]
+            blocks: vec![blocks],
         }
     }
 
@@ -100,64 +143,149 @@ impl Blockchain {
     }
 }
 
-fn main() {
-    //INPUTS
-    let leading_zeros: u64 = 3;
-    let max_nonce = 1_000_000;
-    let input = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
-    //END INPUTS
-    let before = Instant::now();
-    let mut nonce_vec: Vec<u64> = create_nonce_vec(max_nonce);
-    let vector_creation_time = before.elapsed();
+// fn deserialize_input(data: &str) -> Input {
+//     // Some JSON input data as a &str. Maybe this comes from the user.
+//     // let data = r#"
+//     //     {
+//     //         "content": "John Doe",
+//     //         "leading_zeros": 3,
+//     //         "max_nonce": 1000000
+//     //     }"#;
 
-    println!("Vector Creation Time: {:2?}", vector_creation_time);
-    let mut rv = &mut nonce_vec;
-    let rr1 = &mut rv;
-    //let input = "";
-    let before = Instant::now();
-    let prev_hash = Sha256Hash::default(); //genesis block
-    let nonce = find_nonce(input, prev_hash, rr1 , leading_zeros);
-    let elapsed = before.elapsed();
-    println!("old hash: {}", hash_without_nonce_string(input, prev_hash));
-    println!("nonce: {}", nonce);
-    println!("nonced hash: {}", nonced_hash_string(input, prev_hash, nonce));
-    println!("Time: {:2?}", elapsed);
-    let input = "trevor";
-    let prev_hash = hash_without_nonce(input, prev_hash);
-    let before = Instant::now();
-    let nonce = find_nonce(input, prev_hash, rr1 , leading_zeros);
-    println!("old hash: {}", hash_without_nonce_string(input, prev_hash));
-    let elapsed = before.elapsed();
-    
-    println!("Nonce: {:?}", nonce);
-    println!("Time: {:2?}", elapsed);
-    println!("nonced hash: {}", nonced_hash_string(input, prev_hash, nonce));
+//     // Parse the string of data into a Person object. This is exactly the
+//     // same function as the one that produced serde_json::Value above, but
+//     // now we are asking it for a Person as output.
+//     let p: Input = serde_json::from_str(data);
+//     p
+
+//     // Do things just like with any other Rust data structure.
+//     // println!("Please call {} at the number", p.content);
+
+//     // Ok(())
+// }
+
+fn main() {
+    // let mut queue_input = QueueInput::new("a", 3, 1_000_000);
+    // QueueInput::add_input(&mut queue_input, "b", 3, 1_000_000);
+    // QueueInput::add_input(&mut queue_input, "c", 3, 1_000_000);
+    // QueueInput::add_input(&mut queue_input, "Blakeau", 3, 1_000_000);
+    // let input1 = Input::new("a", 3, 1_000_000);
+    // let input2 = Input::new("b", 3, 1_000_000);
+    // let input3 = Input::new("c", 3, 1_000_000);
+    // println!("______________ {:?}", queue_input.inputs[3].content);
+
+    // //INPUTS - THESE INFO WILL BE PARSED FROM FRONTEND
+    // let leading_zeros: u64 = 3;
+    // let max_nonce = 1_000_000;
+    // let input = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
+    // //END INPUTS
+    // let before = Instant::now();
+    // let mut nonce_vec: Vec<u64> = create_nonce_vec(max_nonce);
+    // let vector_creation_time = before.elapsed();
+
+    // println!("Vector Creation Time: {:2?}", vector_creation_time);
+    // let mut rv = &mut nonce_vec;
+    // let rr1 = &mut rv;
+    // //let input = "";
+    // let before = Instant::now();
+    // let prev_hash = Sha256Hash::default(); //genesis block
+    // let nonce = find_nonce(input, prev_hash, rr1, leading_zeros);
+    // let elapsed = before.elapsed();
+    // println!("old hash: {}", hash_without_nonce_string(input, prev_hash));
+    // println!("nonce: {}", nonce);
+    // println!(
+    //     "nonced hash: {}",
+    //     nonced_hash_string(input, prev_hash, nonce)
+    // );
+    // println!("Time: {:2?}", elapsed);
+    let init_input = "Trevor";
+    let init_leading_zeros: u64 = 3;
+    let init_max_nonce = 1_000_000;
+    // let prev_hash = hash_without_nonce(input, prev_hash);
+    // let before = Instant::now();
+    // let nonce = find_nonce(input, prev_hash, rr1, leading_zeros);
+    // println!("old hash: {}", hash_without_nonce_string(input, prev_hash));
+    // let elapsed = before.elapsed();
+    // println!("Nonce: {:?}", nonce);
+    // println!("Time: {:2?}", elapsed);
+    // println!(
+    //     "nonced hash: {}",
+    //     nonced_hash_string(input, prev_hash, nonce)
+    // );
 
     //demo of functions above ^^
+
+    // Initiate values when function first start
+    let init_input = "I love Amy so much";
+    let init_leading_zeros: u64 = 3;
+    let init_max_nonce = 1_000_000;
+    let mut n: u64 = 0;
 
     //ACTUAL USE OF FUNCTIONS:
     //TAKE FIRST INPUT
     //MATCH STATEMENT FOR LEADING ZEROS CHANGED
-    let mut bc = Blockchain::new(input);
+    let mut bc = Blockchain::new(init_input);
 
     //todo: make threads for server i/o
 
     //BEGIN A LOOP
     let blocka = &mut bc.blocks[0];
     //SOME MATCH STATEMENT
-    let mined = Block::mine_block(blocka, max_nonce, leading_zeros);
-
+    let mined = Block::mine_block(blocka, init_max_nonce, init_leading_zeros);
+    n += 1;
 
     println!("{:?}", blocka);
 
-    Blockchain::add_block(&mut bc, "block2", max_nonce, leading_zeros);
-    let blockb = &mut bc.blocks[1];
-    let mined = Block::mine_block(blockb, max_nonce, leading_zeros);
-    println!("{:?}", mined);
-    println!("{:?}", hex::encode(mined.hash));
+    // Receive initial data from front-end
+    let input_json_str = r#"
+        {
+            "content": "John Doe",
+            "leading_zeros": 3,
+            "max_nonce": 1000000
+        }"#;
 
-    //to change to hex 
-    
+    // Parse string into serde_json::Value
+    let result = serde_json::from_str(input_json_str);
+    if result.is_ok() {
+        let p: Input = result.unwrap();
+        println!("Content is {}", p.content.as_str());
+        // If leading_zeros or max_nonce chanced, rebuild the whole block chain
+        if p.leading_zeros != init_leading_zeros || p.max_nonce != init_max_nonce {
+            // Do something in here
+        } else {
+            Blockchain::add_block(
+                &mut bc,
+                p.content.as_str(),
+                init_max_nonce,
+                init_leading_zeros,
+            );
+            let new_block = &mut bc.blocks[n as usize];
+            let mined = Block::mine_block(new_block, init_max_nonce, init_leading_zeros);
+            n += 1;
+            println!("{:?}", mined);
+            println!("{:?}", hex::encode(mined.hash));
+            let j = serde_json::to_string(&bc);
+            println!("{:?}", j);
+        }
+    }
+
+    // for i in 0..4 {
+    //     println!("----------{:?}", queue_input.inputs[i].content);
+    //     Blockchain::add_block(
+    //         &mut bc,
+    //         queue_input.inputs[i].content,
+    //         init_max_nonce,
+    //         init_leading_zeros,
+    //     );
+    //     let blockb = &mut bc.blocks[1];
+    //     let mined = Block::mine_block(blockb, init_max_nonce, init_leading_zeros);
+    //     println!("{:?}", mined);
+    //     println!("{:?}", hex::encode(mined.hash));
+    //     let j = serde_json::to_string(&bc);
+    //     println!("{:?}", j);
+    // }
+
+    //to change to hex
 }
 
 pub fn create_nonce_vec(max_nonce: u64) -> Vec<u64> {
@@ -166,15 +294,18 @@ pub fn create_nonce_vec(max_nonce: u64) -> Vec<u64> {
     nonce_vec
 }
 
-
-
-pub fn find_nonce(input: &str, prev_hash: Sha256Hash, nonce_vec: & mut Vec<u64>, leading_zeros: u64) -> u64 {
-    let nonce_wrapped = nonce_vec.par_iter().find_any(|&&nonce| found_nonce(input, prev_hash, nonce, leading_zeros));
+pub fn find_nonce(
+    input: &str,
+    prev_hash: Sha256Hash,
+    nonce_vec: &mut Vec<u64>,
+    leading_zeros: u64,
+) -> u64 {
+    let nonce_wrapped = nonce_vec
+        .par_iter()
+        .find_any(|&&nonce| found_nonce(input, prev_hash, nonce, leading_zeros));
     let nonce = *nonce_wrapped.unwrap_or(&0);
     nonce
 }
-
-
 
 pub fn nonced_hash_string(input: &str, prev_hash: Sha256Hash, nonce: u64) -> String {
     let mut contents = Vec::new();
@@ -226,7 +357,6 @@ pub fn hash_without_nonce_string(input: &str, prev_hash: Sha256Hash) -> String {
     let mut contents = Vec::new();
     contents.extend_from_slice(&prev_hash);
     contents.extend_from_slice(input.as_bytes());
-    
     let mut hasher = Sha256::new();
     hasher.input(&contents);
     let mut hash = Sha256Hash::default();
@@ -239,7 +369,6 @@ pub fn hash_without_nonce(input: &str, prev_hash: Sha256Hash) -> Sha256Hash {
     let mut contents = Vec::new();
     contents.extend_from_slice(&prev_hash);
     contents.extend_from_slice(input.as_bytes());
-    
     let mut hasher = Sha256::new();
     hasher.input(&contents);
     let mut hash = Sha256Hash::default();
@@ -258,5 +387,5 @@ pub fn convert_u64_little_endian(val: u64) -> [u8; 8] {
         (val >> 40) as u8,
         (val >> 48) as u8,
         (val >> 56) as u8,
-    ]
+    ];
 }
