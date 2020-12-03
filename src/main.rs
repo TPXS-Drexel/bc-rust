@@ -143,27 +143,6 @@ impl Blockchain {
     }
 }
 
-// fn deserialize_input(data: &str) -> Input {
-//     // Some JSON input data as a &str. Maybe this comes from the user.
-//     // let data = r#"
-//     //     {
-//     //         "content": "John Doe",
-//     //         "leading_zeros": 3,
-//     //         "max_nonce": 1000000
-//     //     }"#;
-
-//     // Parse the string of data into a Person object. This is exactly the
-//     // same function as the one that produced serde_json::Value above, but
-//     // now we are asking it for a Person as output.
-//     let p: Input = serde_json::from_str(data);
-//     p
-
-//     // Do things just like with any other Rust data structure.
-//     // println!("Please call {} at the number", p.content);
-
-//     // Ok(())
-// }
-
 fn main() {
     // let mut queue_input = QueueInput::new("a", 3, 1_000_000);
     // QueueInput::add_input(&mut queue_input, "b", 3, 1_000_000);
@@ -198,9 +177,9 @@ fn main() {
     //     nonced_hash_string(input, prev_hash, nonce)
     // );
     // println!("Time: {:2?}", elapsed);
-    let init_input = "Trevor";
-    let init_leading_zeros: u64 = 3;
-    let init_max_nonce = 1_000_000;
+    // let input = "Trevor";
+    // let leading_zeros: u64 = 3;
+    // let max_nonce = 1_000_000;
     // let prev_hash = hash_without_nonce(input, prev_hash);
     // let before = Instant::now();
     // let nonce = find_nonce(input, prev_hash, rr1, leading_zeros);
@@ -216,7 +195,7 @@ fn main() {
     //demo of functions above ^^
 
     // Initiate values when function first start
-    let init_input = "I love Amy so much";
+    let init_input = "Null";
     let init_leading_zeros: u64 = 3;
     let init_max_nonce = 1_000_000;
     let mut n: u64 = 0;
@@ -239,7 +218,7 @@ fn main() {
     // Receive initial data from front-end
     let input_json_str = r#"
         {
-            "content": "John Doe",
+            "content": "Blake",
             "leading_zeros": 3,
             "max_nonce": 1000000
         }"#;
@@ -264,8 +243,8 @@ fn main() {
             n += 1;
             println!("{:?}", mined);
             println!("{:?}", hex::encode(mined.hash));
-            let j = serde_json::to_string(&bc);
-            println!("{:?}", j);
+            let j = serde_json::to_string(&bc).unwrap();
+            println!("{}", j);
         }
     }
 
