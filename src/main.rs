@@ -74,6 +74,9 @@ impl Block {
         }
 
     }
+    pub fn refresh_block(&mut self) {
+        self.hash = hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash);
+    }
 }
 
 
