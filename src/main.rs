@@ -139,9 +139,17 @@ impl Block {
             self
         }
     }
+    pub fn refresh_block(&mut self) {
+        self.hash = hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash);
+        self.mined = false;
+        self.nonce = 0;
+    }
 }
 
+<<<<<<< HEAD
 #[derive(Serialize, Deserialize)]
+=======
+>>>>>>> main
 pub struct Blockchain {
     blocks: Vec<Block>,
 }
@@ -162,6 +170,26 @@ impl Blockchain {
         }
         let block = Block::new(id, data, self.blocks.last().unwrap().hash);
         self.blocks.push(block);
+    }
+    pub fn check_and_mine_blocks(self, max_nonce: u64, leading_zeros: u64) -> Self{
+        let mut blocks_rev: Vec<Block> = Vec::new();
+        for block in self.blocks {
+            blocks_rev.push(block);
+        }
+        let mut mined = true;
+        let mut bc: Vec<Block> = Vec::new();
+        for mut block in blocks_rev {
+            if block.mined && mined{
+                bc.push(block);
+            } else {
+                mined = false;
+                block.mined = mined;
+                bc.push(block);
+            }
+        }
+        let mut blockchain: Blockchain = Blockchain::new(std::str::from_utf8(&bc.pop().unwrap().data).unwrap());
+        blockchain.add_block(std::str::from_utf8(&bc.pop().unwrap().data).unwrap(), max_nonce, leading_zeros);
+        blockchain
     }
 }
 
