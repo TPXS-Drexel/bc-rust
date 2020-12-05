@@ -1,4 +1,3 @@
-//use sha2::{Sha256, Digest};
 use crypto::digest::Digest;
 use crypto::sha2::Sha256;
 use hex::encode;
@@ -6,15 +5,6 @@ use num_bigint::BigUint;
 use num_traits::One;
 use rayon::prelude::*;
 use std::time::Instant;
-/*
-use std::thread;
-use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
-*/
-//serde
-// use async_std::fs;
-// use futures::future;
-// use std::path::Path;
 
 extern crate serde;
 extern crate serde_json;
@@ -32,7 +22,7 @@ extern crate regex;
 #[macro_use]
 extern crate lazy_static;
 
-use actix_web::{error, post, web, App, Error, HttpResponse};
+use actix_web::{web, App, Error, HttpResponse, HttpServer, Responder};
 use regex::Regex;
 use std::fs;
 use std::io::prelude::*;
@@ -51,39 +41,6 @@ pub struct Input {
     max_nonce: u64,
 }
 
-// impl Input {
-//     pub fn new(content: &str, leading_zeros: u64, max_nonce: u64) -> Self {
-//         let mut s = Self {
-//             content: content.to_owned().into(),
-//             leading_zeros: leading_zeros.to_owned().into(),
-//             max_nonce: max_nonce.to_owned().into(),
-//         };
-//         s
-//     }
-
-//     pub fn genesis(content: &str, leading_zeros: u64, max_nonce: u64) -> Self {
-//         Self::new(content, leading_zeros, max_nonce)
-//     }
-// }
-
-// pub struct QueueInput {
-//     inputs: Vec<Input>,
-// }
-
-// impl QueueInput {
-//     pub fn new(content: &str, leading_zeros: u64, max_nonce: u64) -> Self {
-//         let inputs = Input::genesis(content, leading_zeros, max_nonce);
-//         Self {
-//             inputs: vec![inputs],
-//         }
-//     }
-
-//     pub fn add_input(&mut self, content: &str, max_nonce: u64, leading_zeros: u64) {
-//         let input = Input::new(content, leading_zeros, max_nonce);
-//         self.inputs.push(input);
-//     }
-// }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Block {
     id: u64,
@@ -97,10 +54,12 @@ pub struct Block {
     //hash_string: String,
     mined: bool,
     mining_time: std::time::Duration,
+    encoded_hash: String,
+    encoded_prev_block_hash: String,
 }
 
 impl Block {
-    pub fn new(mut id: u64, data: &str, prev_hash: Sha256Hash) -> Self {
+    pub fn new(id: u64, data: &str, prev_hash: Sha256Hash) -> Self {
         let mut s = Self {
             id: id,
             prev_block_hash: prev_hash,
@@ -113,11 +72,13 @@ impl Block {
                 let before = Instant::now();
                 before.elapsed()
             },
+            encoded_hash: hex::encode(hash_without_nonce(data, prev_hash)),
+            encoded_prev_block_hash: hex::encode(prev_hash),
         };
         s
     }
 
-    pub fn genesis(mut id: u64, data: &str) -> Self {
+    pub fn genesis(id: u64, data: &str) -> Self {
         Self::new(id, data, Sha256Hash::default())
     }
 
@@ -131,9 +92,10 @@ impl Block {
         let elapsed = before.elapsed();
         if nonced != 0 {
             self.nonce = nonced;
-            self.hash = nonced_hash(data, self.prev_block_hash, nonced);
+            self.hash = nonced_hash(data, self.prev_block_hash, nonced); 
             self.mined = true;
             self.mining_time = elapsed;
+            self.encoded_hash = hex::encode(nonced_hash(data, self.prev_block_hash, nonced));
             self
         } else {
             self
@@ -143,13 +105,10 @@ impl Block {
         self.hash = hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash);
         self.mined = false;
         self.nonce = 0;
+        self.encoded_hash = hex::encode(hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash));
     }
 }
 
-<<<<<<< HEAD
-#[derive(Serialize, Deserialize)]
-=======
->>>>>>> main
 pub struct Blockchain {
     blocks: Vec<Block>,
 }
@@ -171,158 +130,133 @@ impl Blockchain {
         let block = Block::new(id, data, self.blocks.last().unwrap().hash);
         self.blocks.push(block);
     }
-    pub fn check_and_mine_blocks(self, max_nonce: u64, leading_zeros: u64) -> Self{
-        let mut blocks_rev: Vec<Block> = Vec::new();
-        for block in self.blocks {
-            blocks_rev.push(block);
-        }
-        let mut mined = true;
-        let mut bc: Vec<Block> = Vec::new();
-        for mut block in blocks_rev {
-            if block.mined && mined{
-                bc.push(block);
-            } else {
-                mined = false;
-                block.mined = mined;
-                bc.push(block);
-            }
-        }
-        let mut blockchain: Blockchain = Blockchain::new(std::str::from_utf8(&bc.pop().unwrap().data).unwrap());
-        blockchain.add_block(std::str::from_utf8(&bc.pop().unwrap().data).unwrap(), max_nonce, leading_zeros);
-        blockchain
-    }
 }
 
-// async fn get_input<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
-//     let path = path.as_ref().to_owned();
-//     future::ok(path.to_)
-// }
-
+// get "mine new block" request from fontend
 fn get_request_content(text: &str) -> &str {
-    println!("doing regex");
     lazy_static! {
         static ref RE: Regex = Regex::new(r"(GET /convert_bc(.*) HTTP)").unwrap();
     }
     match RE.captures(text) {
         Some(caps) => {
-            println!("Found {}", &caps[0]);
             let end_pos = &caps[0].len() - 5;
-            // let slice = &caps[0][18..end_pos];
-            // println!("slice is {} ", slice);
             return &caps.get(0).unwrap().as_str()[18..end_pos];
         }
         None => {
-            println!("Can't find {}", text);
             return text;
         }
     }
 }
 
+// get block id from fontend
+fn get_mine_id(text: &str) -> &str {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"(GET /minebc\*[0-9]*__)").unwrap();
+    }
+    match RE.captures(text) {
+        Some(caps) => {
+            let end_pos = &caps[0].len() - 2;
+            return &caps.get(0).unwrap().as_str()[12..end_pos];
+        }
+        None => {
+            return text;
+        }
+    }
+}
+
+// get block's new content from fontend
+fn get_mine_content(text: &str) -> &str {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"__(.*) HTTP").unwrap();
+    }
+    match RE.captures(text) {
+        Some(caps) => {
+            let end_pos = &caps[0].len() - 5;
+            return &caps.get(0).unwrap().as_str()[2..end_pos];
+        }
+        None => {
+            return text;
+        }
+    }
+}
+
+// get max_nonce value from fontend's preference
+fn get_max_nonce(text: &str) -> u64 {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"(GET /setting_bc\*[0-9]*__)").unwrap();
+    }
+    match RE.captures(text) {
+        Some(caps) => {
+            let end_pos = &caps[0].len() - 2;
+            let digits =  &caps.get(0).unwrap().as_str()[16..end_pos];
+            return digits.parse::<u64>().unwrap();
+        }
+        None => {
+            return 1_000_000;
+        }
+    }
+}
+
+// get leading value from fontend's preference
+fn get_leading_zeros(text: &str) -> u64 {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"__[0-9]* HTTP").unwrap();
+    }
+    match RE.captures(text) {
+        Some(caps) => {
+            let end_pos = &caps[0].len() - 5;
+            return caps.get(0).unwrap().as_str()[2..end_pos].parse::<u64>().unwrap();
+        }
+        None => {
+            return 3;
+        }
+    }
+}
+
 fn main() {
-    // let mut queue_input = QueueInput::new("a", 3, 1_000_000);
-    // QueueInput::add_input(&mut queue_input, "b", 3, 1_000_000);
-    // QueueInput::add_input(&mut queue_input, "c", 3, 1_000_000);
-    // QueueInput::add_input(&mut queue_input, "Blakeau", 3, 1_000_000);
-    // let input1 = Input::new("a", 3, 1_000_000);
-    // let input2 = Input::new("b", 3, 1_000_000);
-    // let input3 = Input::new("c", 3, 1_000_000);
-    // println!("______________ {:?}", queue_input.inputs[3].content);
-
-    // //INPUTS - THESE INFO WILL BE PARSED FROM FRONTEND
-    // let leading_zeros: u64 = 3;
-    // let max_nonce = 1_000_000;
-    // let input = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
-    // //END INPUTS
-    // let before = Instant::now();
-    // let mut nonce_vec: Vec<u64> = create_nonce_vec(max_nonce);
-    // let vector_creation_time = before.elapsed();
-
-    // println!("Vector Creation Time: {:2?}", vector_creation_time);
-    // let mut rv = &mut nonce_vec;
-    // let rr1 = &mut rv;
-    // //let input = "";
-    // let before = Instant::now();
-    // let prev_hash = Sha256Hash::default(); //genesis block
-    // let nonce = find_nonce(input, prev_hash, rr1, leading_zeros);
-    // let elapsed = before.elapsed();
-    // println!("old hash: {}", hash_without_nonce_string(input, prev_hash));
-    // println!("nonce: {}", nonce);
-    // println!(
-    //     "nonced hash: {}",
-    //     nonced_hash_string(input, prev_hash, nonce)
-    // );
-    // println!("Time: {:2?}", elapsed);
-    // let input = "Trevor";
-    // let leading_zeros: u64 = 3;
-    // let max_nonce = 1_000_000;
-    // let prev_hash = hash_without_nonce(input, prev_hash);
-    // let before = Instant::now();
-    // let nonce = find_nonce(input, prev_hash, rr1, leading_zeros);
-    // println!("old hash: {}", hash_without_nonce_string(input, prev_hash));
-    // let elapsed = before.elapsed();
-    // println!("Nonce: {:?}", nonce);
-    // println!("Time: {:2?}", elapsed);
-    // println!(
-    //     "nonced hash: {}",
-    //     nonced_hash_string(input, prev_hash, nonce)
-    // );
-
-    //demo of functions above ^^
-
-    // let mut file = File::create("output.json").expect("Could not create file");
-
-    // Initiate values when function first start
+    // Initiate values when program first run
     let init_id = 0;
     let init_input = "Null";
-    let init_leading_zeros: u64 = 3;
-    let init_max_nonce = 1_000_000;
+    let mut init_leading_zeros: u64 = 3;
+    let mut init_max_nonce: u64 = 1_000_000;
     let mut n: u64 = 0;
-
-    //ACTUAL USE OF FUNCTIONS:
-    //TAKE FIRST INPUT
-    //MATCH STATEMENT FOR LEADING ZEROS CHANGED
+    // Initialize the blockchain
     let mut bc = Blockchain::new(init_id, init_input);
-
-    //todo: make threads for server i/o
-
-    //BEGIN A LOOP
-    let blocka = &mut bc.blocks[0];
-    //SOME MATCH STATEMENT
-    let mined = Block::mine_block(blocka, init_max_nonce, init_leading_zeros);
-    n += 1;
-
-    println!("{:?}", blocka);
+    n +=1 ;
 
     // Listen for incoming TCP connections on localhost port 7878
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
 
-    // Block forever, handling each request that arrives at this IP address
+    // Block forever, keep on handling each request that arrives at this IP address
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();
+
         // Handle connection from stream;
         let mut buffer = [0; 1024];
         stream.read(&mut buffer).unwrap();
+
         // Read and process HTTP request
-        let message = String::from_utf8_lossy(&buffer[..]);
-        println!("Request: {}", message);
-        // Declare 2 expected cases of HTTP request
+        let message = String::from_utf8_lossy(&buffer[..]); // this message is the HTTP REQUEST sent back from front end depending on the request triage to the correct task
+        // println!("Request: {}", message);
+
+        // Declare expected cases of HTTP request
         let get = b"GET / HTTP/1.1\r\n";
         let get_convert = b"GET /convert_bc";
+        let get_mine = b"GET /minebc";
+        let get_update_pref = b"GET /setting_bc";
+
         // Triage flow based on HTTP request content
         let (status_line, filename) = 
         // If HTTP 200 OK
         if buffer.starts_with(get) {
             ("HTTP/1.1 200 OK\r\n\r\n", "./user_interface/index.html")
+        } 
         // If HTTP sends content for new block
-        } else if buffer.starts_with(get_convert) {
+        else if buffer.starts_with(get_convert) {
             let mut file = File::create("output.json").expect("Could not create file");
-            println!("Blockchain now");
+            println!("Add new block...");
             let input_content = get_request_content(&message);
-            println!("{}", input_content);
-            // let result = serde_json::from_str(input_content);
-            // if result.is_ok() {
-            // let p = input_content;
-            println!("Content is {}", input_content);
+            println!("Block content is {}", input_content);
             Blockchain::add_block(
                 &mut bc,
                 n,
@@ -331,20 +265,63 @@ fn main() {
                 init_leading_zeros,
             );
             let new_block = &mut bc.blocks[n as usize];
-            let mined = Block::mine_block(new_block, init_max_nonce, init_leading_zeros);
+            Block::mine_block(new_block, init_max_nonce, init_leading_zeros);
             n += 1;
-            println!("{:?}", mined);
-            println!("{:?}", hex::encode(mined.hash));
+            // println!("{:?}", mined);
+            // println!("{:?}", hex::encode(mined.hash));
             let j = serde_json::to_string(&bc.blocks).unwrap();
-            println!("{}", j);
+            // println!("{}", j);
             file.write_all(j.as_ref()).expect("Cannot write the file");
-            // }
-            ("HTTP/1.1 200 OK\r\n\r\n", "./user_interface/index.html")
+            ("HTTP/1.1 200 OK\r\n\r\n", "./output.json")
+        } 
+        // If HTTP asks to mine from a certain block
+        else if buffer.starts_with(get_mine) {
+            let mut file = File::create("output.json").expect("Could not create file");
+            println!("Mine...");
+            let mine_id = get_mine_id(&message); 
+            let mine_content = get_mine_content(&message);
+            println!("Mine id is {}", mine_id);
+            println!("Mine content is {}", mine_content);
+
+            //@Trevor: THIS IS THE WHERE WE NEED TO MINE THE CHOSEN BLOCK AND ALL THE FOLLOWING BLOCKs
+            // Uncomment below after implementing Blockchain::mine_from_here_until_the_end_of_chain_lol() (or any name you want)
+            // Blockchain::mine_from_here_until_the_end_of_chain_lol()
+            //     &mut bc,
+            //     mine_id,   <-------- @Trevor: THIS IS WHERE YOU GET THE ID FOR THE FIRST BLOCK WITHIN THE BLOCKCHAIN THAT WILL NEED TO BE MINED AGAIN
+            //     mine_content, <----- @Trevor: THIS IS THE CONTENT OF THE FIRST BLOCK THAT WAS ALTERED AND THEREFORE NEED TO BE MINED AGAIN, AND THE FOLLOWING BLOCKS
+            //     init_max_nonce,
+            //     init_leading_zeros,)
+
+            let j = serde_json::to_string(&bc.blocks).unwrap();
+            // println!("{}", j);
+            file.write_all(j.as_ref()).expect("Cannot write the file");
+            ("HTTP/1.1 200 OK\r\n\r\n", "./output.json")
+
+        // If HTTP asks to update leading zeros and/or max nonce
+        } else if buffer.starts_with(get_update_pref) {
+            let mut file = File::create("output.json").expect("Could not create file");
+            println!("Update preference...");
+            init_max_nonce = get_max_nonce(&message);
+            let leading_zeros = get_leading_zeros(&message);
+            println!("Max nonce id is {}", init_max_nonce);
+            println!("Leading zeros is {}", leading_zeros);
+            if leading_zeros != init_leading_zeros {
+                init_leading_zeros = leading_zeros;
+                n = 0;
+                bc = Blockchain::new(init_id, init_input);
+                n +=1 ;
+                let j = serde_json::to_string(&bc.blocks).unwrap();
+                // println!("{}", j);
+                file.write_all(j.as_ref()).expect("Cannot write the file");
+                ("HTTP/1.1 200 OK\r\n\r\n", "./user_interface/index.html")
+            } else {("HTTP/1.1 200 OK\r\n\r\n", "./output.json")}
+            
+
         // If HTTP sends an unrecognized request
         } else {
             (
-                "HTTP/1.1 404 NOT FOUND\r\n\r\n",
-                "./user_interface/index_2.html",
+                "HTTP/1.1 200 OK\r\n\r\n",
+                "./output.json",
             )
         };
         // Compile and return content
@@ -353,35 +330,6 @@ fn main() {
         stream.write(response.as_bytes()).unwrap();
         stream.flush().unwrap();
     }
-
-    // Receive initial data from front-end
-    // let input_json_str = r#"
-    //     {
-    //         "content": "",
-    //         "leading_zeros": 3,
-    //         "max_nonce": 1000000
-    //     }"#;
-
-    // Parse string into serde_json::Value
-    // hash_input(input_json_str, init_leading_zeros, init_max_nonce, mut blockchain: Blockchain, n);
-
-    // for i in 0..4 {
-    //     println!("----------{:?}", queue_input.inputs[i].content);
-    //     Blockchain::add_block(
-    //         &mut bc,
-    //         queue_input.inputs[i].content,
-    //         init_max_nonce,
-    //         init_leading_zeros,
-    //     );
-    //     let blockb = &mut bc.blocks[1];
-    //     let mined = Block::mine_block(blockb, init_max_nonce, init_leading_zeros);
-    //     println!("{:?}", mined);
-    //     println!("{:?}", hex::encode(mined.hash));
-    //     let j = serde_json::to_string(&bc);
-    //     println!("{:?}", j);
-    // }
-
-    //to change to hex
 }
 
 pub fn create_nonce_vec(max_nonce: u64) -> Vec<u64> {

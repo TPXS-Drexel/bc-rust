@@ -2,11 +2,10 @@
 <html>
 
 <head>
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js">
-  </script>
   <title>Blockchain Demo</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- <link rel="stylesheet" href="./css/style.css"> -->
   <style>
     * {
       box-sizing: border-box;
@@ -196,7 +195,7 @@
       float: left;
       width: 30%;
       padding: 10px;
-      height: 650px;
+      height: 550px;
       margin: 10px;
     }
 
@@ -225,8 +224,8 @@
     <div class="firstcolumn">
       <div class="card">
         <h2>BUILD YOUR BLOCKCHAIN</h2>
-        <button onclick="document.getElementById('create1').style.display='block'" style="width:auto;">
-          Create New Block</button>
+        <button onclick="document.getElementById('create1').style.display='block'" style="width:auto;">Create New
+          Block</button>
         <button onclick="document.getElementById('create2').style.display='block'"
           style="width:auto;">Preference</button>
         <div id="create2" class="modal">
@@ -234,15 +233,19 @@
             <div class="container">
               <h2>Application Preference</h2>
               <p>Please, specify your blockchain preferences:</p>
+              <label>Engine</label>
+              <input type="text"><br>
               <label>Attempts</label>
-              <input type="number" id="max_nonce" value=1000000><br>
-              <label>Complexity (Number of leading zeros)</label>
-              <input type="number" id="leading_zeros"><br>
+              <input type="text"><br>
+              <label>Complexity</label>
+              <input type="text"><br>
+              <label>Proxy Port</label>
+              <input type="text"><br>
             </div>
             <div class="container" style="background-color:#f1f1f1">
               <button type="button" onclick="document.getElementById('create2').style.display='none'"
                 class="cancelbtn">Cancel</button>
-              <button type="button" class="minebtn" onclick="handle_change_setting()">Save</button>
+              <button type="button" class="minebtn">Save</button>
             </div>
           </form>
         </div>
@@ -251,33 +254,25 @@
             <div class="container">
               <h2>Create a New Block</h2>
               <p>Please, enter data for the new block:</p>
-              <textarea rows="7" cols="30" id="textForNew"></textarea>
+              <textarea rows="4" cols="70" id="textForNew"></textarea>
             </div>
             <div class="container" style="background-color:#f1f1f1">
               <button type="button" onclick="document.getElementById('create1').style.display='none'"
                 class="cancelbtn">Cancel</button>
-              <button type="button" onclick="handle_insert()" class="minebtn">Save</button>
+              <button type="button" onclick="insert()" class="minebtn">Save</button>
             </div>
           </form>
         </div>
       </div>
-      <div class="card row" id="elemID"></div>
+      <div class="card row" id="elemID">
+      </div>
     </div>
 
   </div>
-  <script type="text/javascript" language="javascript">
-    var init_leading_zeros = 3;
-    var init_max_nonce = 1000000;
-    window.onload = function () {
-      document.getElementById('leading_zeros').value = init_leading_zeros;
-    }
+  <script>
 
-    /* For creating a new Block */
     var modal = document.getElementById('create1');
-    /* For Preference */
     var modal2 = document.getElementById('create2');
-    var test = document.getElementById('test');
-
     window.onclick = function (event) {
       if (event.target == modal) {
         modal.style.display = "none";
@@ -288,106 +283,29 @@
       }
     }
 
-    // function loadJSON(path, success, error) {
-    //   var xhr = new XMLHttpRequest();
-    //   xhr.onreadystatechange = function () {
-    //     if (xhr.readyState === XMLHttpRequest.DONE) {
-    //       if (xhr.status === 200) {
-    //         if (success)
-    //           success(JSON.parse(xhr.responseText));
-    //       } else {
-    //         if (error)
-    //           error(xhr);
-    //       }
-    //     }
-    //   };
-    //   xhr.open("GET", path, true);
-    //   xhr.send();
-    // }
-
-    function loadJSON(callback) {
-      var xobj = new XMLHttpRequest();
-      xobj.overrideMimeType("application/json");
-      xobj.open('GET', 'output.json', true);
-      // Replace 'my_data' with the path to your file
-      xobj.onreadystatechange = function () {
-        if (xobj.readyState === 4 && xobj.status === 200) {
-          // Required use of an anonymous callback 
-          // as .open() will NOT return a value but simply returns undefined in asynchronous mode
-          callback(xobj.responseText);
-        }
-      };
-      xobj.send(null);
-    }
-
-    function handle_change_setting() {
-      init_max_nonce = document.getElementById("max_nonce").value;
-      var leadZeros = document.getElementById("leading_zeros").value;
-      if (leadZeros != init_leading_zeros) {
-        init_leading_zeros = leadZeros;
-        // window.location.reload();
-      }
-      modal2.style.display = "none";
-      console.log(init_max_nonce, leadZeros);
-      get_message = `setting_bc*${init_max_nonce}__${leadZeros}`;
-      var xhttp = new XMLHttpRequest();
-      xhttp.open("GET", get_message, true);
-      xhttp.send();
-    }
-
-    function handle_insert() {
+    function insert() {
       var datatxt = document.getElementById("textForNew").value
       if (datatxt == "" || datatxt == null) {
         alert("Please, type the data for the new block");
         return false;
       }
       document.getElementById('create1').style.display = 'none'
-      // Send GET request to backend
+      document.getElementById('elemID').innerHTML +=
+        '<div class="column" style="background-color: aquamarine;">' +
+        '<form style="padding: 10px">' + '<h2>Blockchain Block</h2>' +
+        '<label>Block</label>' +
+        '<input type="text"><br>' + '<label>Parent</label>' + '<input type="text"><br>' +
+        '<label>Block Data</label>' + '<textarea id="display1" style="width: 100%; height:80px" id="display1">' + datatxt + '</textarea>' + '<label>Nonce</label>' + '<input type="text"><br>' + '<label>Hash</label>' + '<input type="text"><br>' +
+        '<button style="width:auto;">Submit</button>' +
+        '</form>' + '</div>'
+
       get_message = `convert_bc ${datatxt}`;
+
+
+      // Test some stuff
       var xhttp = new XMLHttpRequest();
       xhttp.open("GET", get_message, true);
       xhttp.send();
-      /*JSON File call */
-      // loadJSON(function (response) {
-      //   // Parse JSON string into object
-      //   var actual_JSON = JSON.parse(response);
-      //   console.log("Here's your JSON ", actual_JSON);
-      // });
-      // loadJSON('output.json', function (data) { console.log(data); }, function (xhr) { console.error(xhr); })
-      // var json_dir = require('./output.json');
-      $.getJSON("output.json", [], function (data) {
-        console.log("Blake is perfume ", data);
-        var html = '',
-          el = document.getElementById("elemID");
-        $.each(data, function (key, val) {
-          console.log("reading json file", val);
-          block_color = val.mined ? "aquamarine" : "red";
-          console.log(block_color);
-          html += '<div class="column" style="background-color:' + block_color + '">' +
-            '<form style="padding: 10px" id="block_form_' + val.id + '" method="get">' + '<h2>Blockchain Block</h2>' +
-            '<label>Block</label>' + '<textarea style="width: 100%; height:50px">' + val.id + '</textarea>' + '<label>Parent</label>' + '<textarea style="width: 100%; height:50px">' +
-            val.encoded_prev_block_hash + '</textarea>' + '<label>Block Data</label>' + '<textarea style="width: 100%; height:50px" id="block_data_' + val.id + '">' + val.input_data + '</textarea>' + '<label>Nonce</label>' + '<textarea style="width: 100%; height:50px">' +
-            val.nonce + '</textarea>' + '<label>Hash</label>' + '<textarea style="width: 100%; height:50px">' + val.encoded_hash + '</textarea>' + '<label>Mining Time (Seconds)</label>' + '<br>' + '<textarea style="width: 50%; height:30px">' + JSON.stringify(val.mining_time.secs) + '</textarea>' + '<br>' +
-            '<label>Mining Time (Micro Seconds)</label>' + '<br>' + '<textarea style="width: 50%; height:30px">' + JSON.stringify(val.mining_time.nanos / 1000000) + '</textarea>' + '<br>' + '<button style="width:auto;" onclick="handle_mine(' + val.id + ')" type="button">Mine</button>' + '</form>' + '</div>';
-        });
-        el.innerHTML = html
-      });
-    }
-
-    function handle_mine(id) {
-      var new_input = document.getElementById(`block_data_${id}`).value;
-      console.log("Mine this ", new_input);
-      // console.log(datatxt);
-      // if (datatxt == "" || datatxt == null) {
-      //   alert("Please, type the data for the new block");
-      //   return false;
-      // }
-      // Send GET request to backend
-      msg = `minebc*${id}__${new_input}`;
-      var xhttp = new XMLHttpRequest();
-      xhttp.open("GET", msg, true);
-      xhttp.send();
-
     }
 
   </script>
