@@ -241,6 +241,11 @@ fn get_leading_zeros(text: &str) -> u64 {
 }
 
 fn main() {
+
+    fs::remove_file("output.json").expect_err("no output.json yet");
+    let mut file = File::create("output.json").expect("Could not create file");
+
+
     // Initiate values when program first run
     let init_id = 0;
     let init_input = "Null";
@@ -250,6 +255,10 @@ fn main() {
     // Initialize the blockchain
     let mut bc = Blockchain::new(init_input);
     n +=1 ;
+
+    let j = serde_json::to_string(&bc.blocks).unwrap();
+    // println!("{}", j);
+    file.write_all(j.as_ref()).expect("Cannot write the file");
 
     // Listen for incoming TCP connections on localhost port 7878
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
