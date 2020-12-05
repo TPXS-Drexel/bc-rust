@@ -337,6 +337,7 @@
 
     function handle_insert() {
       var datatxt = document.getElementById("textForNew").value
+      document.getElementById("textForNew").value = '';
       if (datatxt == "" || datatxt == null) {
         alert("Please, type the data for the new block");
         return false;
@@ -361,7 +362,7 @@
           el = document.getElementById("elemID");
         $.each(data, function (key, val) {
           console.log("reading json file", val);
-          block_color = val.mined ? "aquamarine" : "red";
+          block_color = val.mined ? "aquamarine" : "darksalmon";
           console.log(block_color);
           html += '<div class="column" style="background-color:' + block_color + '">' +
             '<form style="padding: 10px" id="block_form_' + val.id + '" method="get">' + '<h2>Blockchain Block</h2>' +
@@ -387,6 +388,23 @@
       var xhttp = new XMLHttpRequest();
       xhttp.open("GET", msg, true);
       xhttp.send();
+      $.getJSON("output.json", [], function (data) {
+        console.log("Blake is perfume ", data);
+        var html = '',
+          el = document.getElementById("elemID");
+        $.each(data, function (key, val) {
+          console.log("reading json file", val);
+          block_color = val.mined ? "aquamarine" : "darksalmon";
+          console.log(block_color);
+          html += '<div class="column" style="background-color:' + block_color + '">' +
+            '<form style="padding: 10px" id="block_form_' + val.id + '" method="get">' + '<h2>Blockchain Block</h2>' +
+            '<label>Block</label>' + '<textarea style="width: 100%; height:50px">' + val.id + '</textarea>' + '<label>Parent</label>' + '<textarea style="width: 100%; height:50px">' +
+            val.encoded_prev_block_hash + '</textarea>' + '<label>Block Data</label>' + '<textarea style="width: 100%; height:50px" id="block_data_' + val.id + '">' + val.input_data + '</textarea>' + '<label>Nonce</label>' + '<textarea style="width: 100%; height:50px">' +
+            val.nonce + '</textarea>' + '<label>Hash</label>' + '<textarea style="width: 100%; height:50px">' + val.encoded_hash + '</textarea>' + '<label>Mining Time (Seconds)</label>' + '<br>' + '<textarea style="width: 50%; height:30px">' + JSON.stringify(val.mining_time.secs) + '</textarea>' + '<br>' +
+            '<label>Mining Time (Micro Seconds)</label>' + '<br>' + '<textarea style="width: 50%; height:30px">' + JSON.stringify(val.mining_time.nanos / 1000000) + '</textarea>' + '<br>' + '<button style="width:auto;" onclick="handle_mine(' + val.id + ')" type="button">Mine</button>' + '</form>' + '</div>';
+        });
+        el.innerHTML = html
+      });
 
     }
 

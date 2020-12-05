@@ -59,7 +59,7 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(id: u64, data: &str, prev_hash: Sha256Hash) -> Self {
+    pub fn new(mut id: u64, data: &str, prev_hash: Sha256Hash) -> Self {
         let mut s = Self {
             id: id,
             prev_block_hash: prev_hash,
@@ -78,8 +78,8 @@ impl Block {
         s
     }
 
-    pub fn genesis(id: u64, data: &str) -> Self {
-        Self::new(id, data, Sha256Hash::default())
+    pub fn genesis(data: &str) -> Self {
+        Self::new(0, data, Sha256Hash::default())
     }
 
     pub fn mine_block(&mut self, max_nonce: u64, leading_zeros: u64) -> &Self {
@@ -96,11 +96,13 @@ impl Block {
             self.mined = true;
             self.mining_time = elapsed;
             self.encoded_hash = hex::encode(nonced_hash(data, self.prev_block_hash, nonced));
+            self.encoded_prev_block_hash = hex::encode(self.prev_block_hash);
             self
         } else {
             self
         }
     }
+
     pub fn refresh_block(&mut self) {
         self.hash = hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash);
         self.mined = false;
@@ -114,8 +116,8 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new(id: u64, data: &str) -> Self {
-        let blocks = Block::genesis(id, data);
+    pub fn new(data: &str) -> Self {
+        let blocks = Block::genesis(data);
         Self {
             blocks: vec![blocks],
         }
@@ -129,6 +131,30 @@ impl Blockchain {
         }
         let block = Block::new(id, data, self.blocks.last().unwrap().hash);
         self.blocks.push(block);
+    }
+
+    pub fn check_and_mine_blocks(&mut self, max_nonce: u64, leading_zeros: u64) {
+        let mut blocks_rev: Vec<Block> = Vec::new();
+        for block in &self.blocks {
+            blocks_rev.push(block.clone());
+        }
+        let mut mined = true;
+        let mut temp_prev_hash: Sha256Hash = Sha256Hash::default();
+        for mut block in blocks_rev {
+            if block.mined && mined{
+                // println!("Block isn't mined {:?}", block);
+                temp_prev_hash = block.hash;
+            } else {
+                // println!("Block before mined {:?}", block);
+                mined = false;
+                block.mined = mined;
+                block.prev_block_hash = temp_prev_hash;
+                let temp_block = Block::mine_block(&mut block, max_nonce, leading_zeros);
+                // println!("Block after mined {:?}", temp_block);
+                self.blocks[temp_block.id as usize] = temp_block.clone();
+                temp_prev_hash = temp_block.hash;
+            }
+        }
     }
 }
 
@@ -149,17 +175,18 @@ fn get_request_content(text: &str) -> &str {
 }
 
 // get block id from fontend
-fn get_mine_id(text: &str) -> &str {
+fn get_mine_id(text: &str) -> u64 {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"(GET /minebc\*[0-9]*__)").unwrap();
     }
     match RE.captures(text) {
         Some(caps) => {
             let end_pos = &caps[0].len() - 2;
-            return &caps.get(0).unwrap().as_str()[12..end_pos];
+            let digits = &caps.get(0).unwrap().as_str()[12..end_pos];
+            return digits.parse::<u64>().unwrap();
         }
         None => {
-            return text;
+            return 0;
         }
     }
 }
@@ -221,7 +248,7 @@ fn main() {
     let mut init_max_nonce: u64 = 1_000_000;
     let mut n: u64 = 0;
     // Initialize the blockchain
-    let mut bc = Blockchain::new(init_id, init_input);
+    let mut bc = Blockchain::new(init_input);
     n +=1 ;
 
     // Listen for incoming TCP connections on localhost port 7878
@@ -264,8 +291,8 @@ fn main() {
                 init_max_nonce,
                 init_leading_zeros,
             );
-            let new_block = &mut bc.blocks[n as usize];
-            Block::mine_block(new_block, init_max_nonce, init_leading_zeros);
+            // let new_block = &mut bc.blocks[n as usize];
+            let mined = Block::mine_block(&mut bc.blocks[n as usize], init_max_nonce, init_leading_zeros);
             n += 1;
             // println!("{:?}", mined);
             // println!("{:?}", hex::encode(mined.hash));
@@ -282,6 +309,11 @@ fn main() {
             let mine_content = get_mine_content(&message);
             println!("Mine id is {}", mine_id);
             println!("Mine content is {}", mine_content);
+            // Change content of block to mine
+            bc.blocks[mine_id as usize].input_data = mine_content.to_string();
+            bc.blocks[mine_id as usize].data = mine_content.to_owned().into();
+            bc.blocks[mine_id as usize].mined = false;
+            Blockchain::check_and_mine_blocks(&mut bc, init_max_nonce, init_leading_zeros);
 
             //@Trevor: THIS IS THE WHERE WE NEED TO MINE THE CHOSEN BLOCK AND ALL THE FOLLOWING BLOCKs
             // Uncomment below after implementing Blockchain::mine_from_here_until_the_end_of_chain_lol() (or any name you want)
@@ -308,7 +340,7 @@ fn main() {
             if leading_zeros != init_leading_zeros {
                 init_leading_zeros = leading_zeros;
                 n = 0;
-                bc = Blockchain::new(init_id, init_input);
+                bc = Blockchain::new(init_input);
                 n +=1 ;
                 let j = serde_json::to_string(&bc.blocks).unwrap();
                 // println!("{}", j);
