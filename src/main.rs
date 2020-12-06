@@ -242,7 +242,7 @@ fn get_leading_zeros(text: &str) -> u64 {
 
 fn main() {
 
-    fs::remove_file("output.json");
+    fs::remove_file("output.json").expect("failed to remove file");
     let mut file = File::create("output.json").expect("Could not create file");
     // Initiate values when program first run
     let init_id = 0;
@@ -299,7 +299,7 @@ fn main() {
                 init_leading_zeros,
             );
             // let new_block = &mut bc.blocks[n as usize];
-            let mined = Block::mine_block(&mut bc.blocks[n as usize], init_max_nonce, init_leading_zeros);
+            Block::mine_block(&mut bc.blocks[n as usize], init_max_nonce, init_leading_zeros);
             n += 1;
             // println!("{:?}", mined);
             // println!("{:?}", hex::encode(mined.hash));
