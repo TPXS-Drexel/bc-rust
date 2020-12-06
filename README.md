@@ -13,7 +13,6 @@
 - front end will always loop thru the json file as it gets updated and display everything inside.
 
 ### What needs to be done next:
-@Trevor: "mine_from" method for struct Blockchain: whenever the "Mine" button is pressed, the current "block data" will be sent to Rust. Rust will then mine that block and all of the blocks following it.
-  - you will need mine_id and mine_content of the clicked block to get the new content as well as the box id (see comment on main.rs, from line 280).
-@Chaewon or Blake: Disable "Mine" button on each block's form on default. Button is activated only if form's val.mined === False or content of block_data is edited
-@Chaewon or Blake: If leading zeros was changed, remove all blocks from front-end
+DONE - @Trevor: "mine_from" method for struct Blockchain: whenever the "Mine" button is pressed, the current "block data" will be sent to Rust. Rust will then mine that block and all of the blocks following it. you will need mine_id and mine_content of the clicked block to get the new content as well as the box id (see comment on main.rs, from line 280).
+DONE - @Chaewon or Blake: Disable "Mine" button on each block's form on default. Button is activated only if form's val.mined === False or content of block_data is edited
+DONE - @Chaewon or Blake: If leading zeros was changed, remove all blocks from front-end
