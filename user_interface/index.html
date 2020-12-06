@@ -131,10 +131,8 @@
     .modal-content {
       background-color: #fefefe;
       margin: 5% auto 15% auto;
-      /* 5% from the top, 15% from the bottom and centered */
       border: 1px solid #888;
-      width: 50%;
-      /* Could be more or less, depending on screen size */
+      width: 30%;
     }
 
     .animate {
@@ -196,7 +194,7 @@
       float: left;
       width: 30%;
       padding: 10px;
-      height: 650px;
+      height: auto;
       margin: 10px;
     }
 
@@ -204,6 +202,26 @@
       content: "";
       display: table;
       clear: both;
+    }
+
+    .form-container input[type=text],
+    .form-container input[type=password] {
+      width: 100%;
+      padding: 15px;
+      margin: 5px 0 22px 0;
+      border: none;
+      background: #f1f1f1;
+    }
+
+    .form-container .btn {
+      background-color: #4CAF50;
+      color: white;
+      padding: 16px 20px;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 10px;
+      opacity: 0.8;
     }
   </style>
 </head>
@@ -234,9 +252,9 @@
             <div class="container">
               <h2>Application Preference</h2>
               <p>Please, specify your blockchain preferences:</p>
-              <label>Attempts</label>
-              <input type="number" id="max_nonce" value=1000000><br>
-              <label>Complexity (Number of leading zeros)</label>
+              <label>Attempts</label><br>
+              <input type="number" id="max_nonce" value=1000000><br><br>
+              <label>Complexity (Number of leading zeros)</label><br>
               <input type="number" id="leading_zeros"><br>
             </div>
             <div class="container" style="background-color:#f1f1f1">
@@ -251,7 +269,7 @@
             <div class="container">
               <h2>Create a New Block</h2>
               <p>Please, enter data for the new block:</p>
-              <textarea rows="7" cols="30" id="textForNew"></textarea>
+              <textarea rows="10%" cols="45%" id="textForNew"></textarea>
             </div>
             <div class="container" style="background-color:#f1f1f1">
               <button type="button" onclick="document.getElementById('create1').style.display='none'"
@@ -345,11 +363,13 @@
           block_color = val.mined ? "aquamarine" : "darksalmon";
           disable_mine = val.mined;
           console.log(block_color);
+          var str = val.input_data
+          var block_data = str.replaceAll("%20", " ")
           buttonID = `minebtn_${val.id}`;
           html += '<div class="column" style="background-color:' + block_color + '">' +
             '<form style="padding: 10px" id="block_form_' + val.id + '" method="get">' + '<h2>Blockchain Block #' + val.id + '</h2>' +
             '<label>Parent</label>' + '<textarea style="width: 100%; height:50px" disabled>' +
-            val.encoded_prev_block_hash + '</textarea>' + '<label>Block Data</label>' + '<textarea style="width: 100%; height:50px" id="block_data_' + val.id + '" oninput="enable_mine_button(' + buttonID + ')">' + val.input_data + '</textarea>' + '<label>Nonce</label>' + '<textarea style="width: 100%; height:50px" disabled>' +
+            val.encoded_prev_block_hash + '</textarea>' + '<label>Block Data</label>' + '<textarea style="width: 100%; height:50px" id="block_data_' + val.id + '" oninput="enable_mine_button(' + buttonID + ')">' + block_data + '</textarea>' + '<label>Nonce</label>' + '<textarea style="width: 100%; height:50px" disabled>' +
             val.nonce + '</textarea>' + '<label>Hash</label>' + '<textarea style="width: 100%; height:50px" disabled>' + val.encoded_hash + '</textarea>' +
             '<label>Mining Time (ms)</label>' + '<br>' + '<textarea style="width: 50%; height:30px" disabled>' + JSON.stringify(val.mining_time.nanos / 1000000) + '</textarea>' + '<br>' + '<button style="width:auto; background-color :#696969" onclick="handle_mine(' + val.id + ')" disabled=true type="button" id="' + buttonID + '" >Mine</button>' + '</form>' + '</div>';
         });
