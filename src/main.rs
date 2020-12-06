@@ -176,7 +176,7 @@ fn main() {
     // println!("{}", j);
     file.write_all(j.as_ref()).expect("Cannot write the file");
 
-    // Listen for incoming TCP connections on localhost port 7878
+    // Listen for incoming TCP connections on localhost port 8080
     let listener = TcpListener::bind("0.0.0.0:8080").unwrap();
 
     //expected cases of HTTP request
