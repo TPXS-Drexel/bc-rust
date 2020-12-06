@@ -90,7 +90,7 @@ impl Block {
         let elapsed = before.elapsed();
         if nonced != 0 {
             self.nonce = nonced;
-            self.hash = nonced_hash(data, self.prev_block_hash, nonced); 
+            self.hash = nonced_hash(data, self.prev_block_hash, nonced);
             self.mined = true;
             self.mining_time = elapsed;
             self.encoded_hash = hex::encode(nonced_hash(data, self.prev_block_hash, nonced));
@@ -106,7 +106,7 @@ impl Block {
         self.mined = false;
         self.nonce = 0;
         self.encoded_hash = hex::encode(hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash));
-    } 
+    }
     */
 }
 
@@ -140,7 +140,7 @@ impl Blockchain {
         let mut mined = true;
         let mut temp_prev_hash: Sha256Hash = Sha256Hash::default();
         for mut block in blocks_rev {
-            if block.mined && mined{
+            if block.mined && mined {
                 // println!("Block isn't mined {:?}", block);
                 temp_prev_hash = block.hash;
             } else {
@@ -160,7 +160,6 @@ impl Blockchain {
 mod f_e;
 
 fn main() {
-
     fs::remove_file("output.json").expect("failed to remove file");
     let mut file = File::create("output.json").expect("Could not create file");
     // default values
@@ -170,7 +169,7 @@ fn main() {
     let mut n: u64 = 0;
     // Initialize the blockchain
     let mut bc = Blockchain::new(init_input);
-    n +=1 ;
+    n += 1;
 
     let j = serde_json::to_string(&bc.blocks).unwrap();
     // println!("{}", j);
@@ -194,14 +193,13 @@ fn main() {
         stream.read(&mut buffer).unwrap();
 
         // Read and process HTTP request
-        let message = String::from_utf8_lossy(&buffer[..]); // HTTP REQUEST sent back from front end 
+        let message = String::from_utf8_lossy(&buffer[..]); // HTTP REQUEST sent back from front end
 
         // Triage flow based on HTTP request content
-        let (status_line, filename) = 
-        
-        if buffer.starts_with(get) { //HTTP 200 OK
+        let (status_line, filename) = if buffer.starts_with(get) {
+            //HTTP 200 OK
             ("HTTP/1.1 200 OK\r\n\r\n", "./user_interface/index.html")
-        } 
+        }
         // If HTTP sends content for new block
         else if buffer.starts_with(get_convert) {
             let mut file = File::create("output.json").expect("Could not create file");
@@ -215,20 +213,22 @@ fn main() {
                 init_max_nonce,
                 init_leading_zeros,
             );
-            
-            Block::mine_block(&mut bc.blocks[n as usize], init_max_nonce, init_leading_zeros);
-            
+
+            Block::mine_block(
+                &mut bc.blocks[n as usize],
+                init_max_nonce,
+                init_leading_zeros,
+            );
             let j = serde_json::to_string(&bc.blocks).unwrap();
-            
             file.write_all(j.as_ref()).expect("Cannot write the file");
             n += 1;
             ("HTTP/1.1 200 OK\r\n\r\n", "./output.json")
-        } 
+        }
         // If HTTP asks to mine from a certain block
         else if buffer.starts_with(get_mine) {
             let mut file = File::create("output.json").expect("Could not create file");
             println!("Mine...");
-            let mine_id = f_e::get_mine_id(&message); 
+            let mine_id = f_e::get_mine_id(&message);
             let mine_content = &f_e::get_mine_content(&message).replace("%20", " ");
             println!("Mine id is {}", mine_id);
             println!("Mine content is {}", mine_content);
@@ -255,22 +255,19 @@ fn main() {
                 init_leading_zeros = leading_zeros;
                 n = 0;
                 bc = Blockchain::new(init_input);
-                n +=1 ;
+                n += 1;
                 let j = serde_json::to_string(&bc.blocks).unwrap();
                 // println!("{}", j);
                 file.write_all(j.as_ref()).expect("Cannot write the file");
                 ("HTTP/1.1 200 OK\r\n\r\n", "./user_interface/index.html")
-            } else {("HTTP/1.1 200 OK\r\n\r\n", "./output.json")}
-            
+            } else {
+                ("HTTP/1.1 200 OK\r\n\r\n", "./output.json")
+            }
 
         // If HTTP sends an unrecognized request
         } else {
-            (
-                "HTTP/1.1 200 OK\r\n\r\n",
-                "./output.json",
-            )
-        }; 
-        
+            ("HTTP/1.1 200 OK\r\n\r\n", "./output.json")
+        };
         // Compile and return content
         let contents = fs::read_to_string(filename).unwrap();
         let response = format!("{}{}", status_line, contents);
