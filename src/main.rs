@@ -22,7 +22,7 @@ extern crate regex;
 #[macro_use]
 extern crate lazy_static;
 
-use actix_web::{web, App, Error, HttpResponse, HttpServer, Responder};
+//use actix_web::{web, App, Error, HttpResponse, HttpServer, Responder};
 use std::fs;
 use std::io::prelude::*;
 use std::net::TcpListener;
@@ -100,13 +100,14 @@ impl Block {
             self
         }
     }
-
+    /*
     fn refresh_block(&mut self) {
         self.hash = hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash);
         self.mined = false;
         self.nonce = 0;
         self.encoded_hash = hex::encode(hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash));
-    }
+    } 
+    */
 }
 
 pub struct Blockchain {
@@ -176,7 +177,7 @@ fn main() {
     file.write_all(j.as_ref()).expect("Cannot write the file");
 
     // Listen for incoming TCP connections on localhost port 7878
-    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+    let listener = TcpListener::bind("0.0.0.0:8080").unwrap();
 
     //expected cases of HTTP request
     let get = b"GET / HTTP/1.1\r\n";
