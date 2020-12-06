@@ -242,10 +242,8 @@ fn get_leading_zeros(text: &str) -> u64 {
 
 fn main() {
 
-    fs::remove_file("output.json").expect_err("no output.json yet");
+    fs::remove_file("output.json");
     let mut file = File::create("output.json").expect("Could not create file");
-
-
     // Initiate values when program first run
     let init_id = 0;
     let init_input = "Null";
