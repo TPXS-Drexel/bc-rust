@@ -11,5 +11,5 @@
 - Rust will keep on overwritting JSON file to add new block or refresh data
 - front end will always loop thru the json file as it gets updated and display everything inside.
 
-### What needs to be done next:
+
 

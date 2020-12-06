@@ -23,7 +23,6 @@ extern crate regex;
 extern crate lazy_static;
 
 use actix_web::{web, App, Error, HttpResponse, HttpServer, Responder};
-use regex::Regex;
 use std::fs;
 use std::io::prelude::*;
 use std::net::TcpListener;
@@ -157,87 +156,7 @@ impl Blockchain {
     }
 }
 
-// get "mine new block" request from fontend
-fn get_request_content(text: &str) -> &str {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r"(GET /convert_bc(.*) HTTP)").unwrap();
-    }
-    match RE.captures(text) {
-        Some(caps) => {
-            let end_pos = &caps[0].len() - 5;
-            return &caps.get(0).unwrap().as_str()[18..end_pos];
-        }
-        None => {
-            return text;
-        }
-    }
-}
-
-// get block id from fontend
-fn get_mine_id(text: &str) -> u64 {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r"(GET /minebc\*[0-9]*__)").unwrap();
-    }
-    match RE.captures(text) {
-        Some(caps) => {
-            let end_pos = &caps[0].len() - 2;
-            let digits = &caps.get(0).unwrap().as_str()[12..end_pos];
-            return digits.parse::<u64>().unwrap();
-        }
-        None => {
-            return 0;
-        }
-    }
-}
-
-// get block's new content from fontend
-fn get_mine_content(text: &str) -> &str {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r"__(.*) HTTP").unwrap();
-    }
-    match RE.captures(text) {
-        Some(caps) => {
-            let end_pos = &caps[0].len() - 5;
-            return &caps.get(0).unwrap().as_str()[2..end_pos];
-        }
-        None => {
-            return text;
-        }
-    }
-}
-
-// get max_nonce value from fontend's preference
-fn get_max_nonce(text: &str) -> u64 {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r"(GET /setting_bc\*[0-9]*__)").unwrap();
-    }
-    match RE.captures(text) {
-        Some(caps) => {
-            let end_pos = &caps[0].len() - 2;
-            let digits =  &caps.get(0).unwrap().as_str()[16..end_pos];
-            return digits.parse::<u64>().unwrap();
-        }
-        None => {
-            return 1_000_000;
-        }
-    }
-}
-
-// get leading value from fontend's preference
-fn get_leading_zeros(text: &str) -> u64 {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(r"__[0-9]* HTTP").unwrap();
-    }
-    match RE.captures(text) {
-        Some(caps) => {
-            let end_pos = &caps[0].len() - 5;
-            return caps.get(0).unwrap().as_str()[2..end_pos].parse::<u64>().unwrap();
-        }
-        None => {
-            return 3;
-        }
-    }
-}
+mod f_e;
 
 fn main() {
 
@@ -286,7 +205,7 @@ fn main() {
         else if buffer.starts_with(get_convert) {
             let mut file = File::create("output.json").expect("Could not create file");
             println!("Add new block...");
-            let input_content = &get_request_content(&message).replace("%20", " ");
+            let input_content = &f_e::get_request_content(&message).replace("%20", " ");
             println!("Block content is {}", input_content);
             Blockchain::add_block(
                 &mut bc,
@@ -308,8 +227,8 @@ fn main() {
         else if buffer.starts_with(get_mine) {
             let mut file = File::create("output.json").expect("Could not create file");
             println!("Mine...");
-            let mine_id = get_mine_id(&message); 
-            let mine_content = &get_mine_content(&message).replace("%20", " ");
+            let mine_id = f_e::get_mine_id(&message); 
+            let mine_content = &f_e::get_mine_content(&message).replace("%20", " ");
             println!("Mine id is {}", mine_id);
             println!("Mine content is {}", mine_content);
             // Change content of block to mine
@@ -327,8 +246,8 @@ fn main() {
         } else if buffer.starts_with(get_update_pref) {
             let mut file = File::create("output.json").expect("Could not create file");
             println!("Update preference...");
-            init_max_nonce = get_max_nonce(&message);
-            let leading_zeros = get_leading_zeros(&message);
+            init_max_nonce = f_e::get_max_nonce(&message);
+            let leading_zeros = f_e::get_leading_zeros(&message);
             println!("Max nonce id is {}", init_max_nonce);
             println!("Leading zeros is {}", leading_zeros);
             if leading_zeros != init_leading_zeros {
