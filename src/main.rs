@@ -59,8 +59,8 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(mut id: u64, data: &str, prev_hash: Sha256Hash) -> Self {
-        let mut s = Self {
+    fn new(id: u64, data: &str, prev_hash: Sha256Hash) -> Self {
+        Self {
             id: id,
             prev_block_hash: prev_hash,
             nonce: 0,
@@ -74,15 +74,14 @@ impl Block {
             },
             encoded_hash: hex::encode(hash_without_nonce(data, prev_hash)),
             encoded_prev_block_hash: hex::encode(prev_hash),
-        };
-        s
+        }
     }
 
-    pub fn genesis(data: &str) -> Self {
+    fn genesis(data: &str) -> Self {
         Self::new(0, data, Sha256Hash::default())
     }
 
-    pub fn mine_block(&mut self, max_nonce: u64, leading_zeros: u64) -> &Self {
+    fn mine_block(&mut self, max_nonce: u64, leading_zeros: u64) -> &Self {
         let before = Instant::now();
         let mut nonce_vec = create_nonce_vec(max_nonce);
         let mut rv = &mut nonce_vec;
@@ -103,7 +102,7 @@ impl Block {
         }
     }
 
-    pub fn refresh_block(&mut self) {
+    fn refresh_block(&mut self) {
         self.hash = hash_without_nonce(std::str::from_utf8(&self.data).unwrap(), self.prev_block_hash);
         self.mined = false;
         self.nonce = 0;
@@ -116,14 +115,14 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new(data: &str) -> Self {
+    fn new(data: &str) -> Self {
         let blocks = Block::genesis(data);
         Self {
             blocks: vec![blocks],
         }
     }
 
-    pub fn add_block(&mut self, id: u64, data: &str, max_nonce: u64, leading_zeros: u64) {
+    fn add_block(&mut self, id: u64, data: &str, max_nonce: u64, leading_zeros: u64) {
         if !self.blocks.last().unwrap().mined {
             let prev_block = &mut self.blocks.pop().unwrap();
             Block::mine_block(prev_block, max_nonce, leading_zeros);
@@ -133,7 +132,7 @@ impl Blockchain {
         self.blocks.push(block);
     }
 
-    pub fn check_and_mine_blocks(&mut self, max_nonce: u64, leading_zeros: u64) {
+    fn check_and_mine_blocks(&mut self, max_nonce: u64, leading_zeros: u64) {
         let mut blocks_rev: Vec<Block> = Vec::new();
         for block in &self.blocks {
             blocks_rev.push(block.clone());
@@ -244,9 +243,8 @@ fn main() {
 
     fs::remove_file("output.json").expect("failed to remove file");
     let mut file = File::create("output.json").expect("Could not create file");
-    // Initiate values when program first run
-    let init_id = 0;
-    let init_input = "Null";
+    // default values
+    let init_input = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
     let mut init_leading_zeros: u64 = 3;
     let mut init_max_nonce: u64 = 1_000_000;
     let mut n: u64 = 0;
@@ -261,6 +259,12 @@ fn main() {
     // Listen for incoming TCP connections on localhost port 7878
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
 
+    //expected cases of HTTP request
+    let get = b"GET / HTTP/1.1\r\n";
+    let get_convert = b"GET /convert_bc";
+    let get_mine = b"GET /minebc";
+    let get_update_pref = b"GET /setting_bc";
+
     // Block forever, keep on handling each request that arrives at this IP address
     for stream in listener.incoming() {
         let mut stream = stream.unwrap();
@@ -270,26 +274,19 @@ fn main() {
         stream.read(&mut buffer).unwrap();
 
         // Read and process HTTP request
-        let message = String::from_utf8_lossy(&buffer[..]); // this message is the HTTP REQUEST sent back from front end depending on the request triage to the correct task
-        // println!("Request: {}", message);
-
-        // Declare expected cases of HTTP request
-        let get = b"GET / HTTP/1.1\r\n";
-        let get_convert = b"GET /convert_bc";
-        let get_mine = b"GET /minebc";
-        let get_update_pref = b"GET /setting_bc";
+        let message = String::from_utf8_lossy(&buffer[..]); // HTTP REQUEST sent back from front end 
 
         // Triage flow based on HTTP request content
         let (status_line, filename) = 
-        // If HTTP 200 OK
-        if buffer.starts_with(get) {
+        
+        if buffer.starts_with(get) { //HTTP 200 OK
             ("HTTP/1.1 200 OK\r\n\r\n", "./user_interface/index.html")
         } 
         // If HTTP sends content for new block
         else if buffer.starts_with(get_convert) {
             let mut file = File::create("output.json").expect("Could not create file");
             println!("Add new block...");
-            let input_content = get_request_content(&message);
+            let input_content = &get_request_content(&message).replace("%20", " ");
             println!("Block content is {}", input_content);
             Blockchain::add_block(
                 &mut bc,
@@ -298,14 +295,13 @@ fn main() {
                 init_max_nonce,
                 init_leading_zeros,
             );
-            // let new_block = &mut bc.blocks[n as usize];
+            
             Block::mine_block(&mut bc.blocks[n as usize], init_max_nonce, init_leading_zeros);
-            n += 1;
-            // println!("{:?}", mined);
-            // println!("{:?}", hex::encode(mined.hash));
+            
             let j = serde_json::to_string(&bc.blocks).unwrap();
-            // println!("{}", j);
+            
             file.write_all(j.as_ref()).expect("Cannot write the file");
+            n += 1;
             ("HTTP/1.1 200 OK\r\n\r\n", "./output.json")
         } 
         // If HTTP asks to mine from a certain block
@@ -313,7 +309,7 @@ fn main() {
             let mut file = File::create("output.json").expect("Could not create file");
             println!("Mine...");
             let mine_id = get_mine_id(&message); 
-            let mine_content = get_mine_content(&message);
+            let mine_content = &get_mine_content(&message).replace("%20", " ");
             println!("Mine id is {}", mine_id);
             println!("Mine content is {}", mine_content);
             // Change content of block to mine
@@ -322,17 +318,8 @@ fn main() {
             bc.blocks[mine_id as usize].mined = false;
             Blockchain::check_and_mine_blocks(&mut bc, init_max_nonce, init_leading_zeros);
 
-            //@Trevor: THIS IS THE WHERE WE NEED TO MINE THE CHOSEN BLOCK AND ALL THE FOLLOWING BLOCKs
-            // Uncomment below after implementing Blockchain::mine_from_here_until_the_end_of_chain_lol() (or any name you want)
-            // Blockchain::mine_from_here_until_the_end_of_chain_lol()
-            //     &mut bc,
-            //     mine_id,   <-------- @Trevor: THIS IS WHERE YOU GET THE ID FOR THE FIRST BLOCK WITHIN THE BLOCKCHAIN THAT WILL NEED TO BE MINED AGAIN
-            //     mine_content, <----- @Trevor: THIS IS THE CONTENT OF THE FIRST BLOCK THAT WAS ALTERED AND THEREFORE NEED TO BE MINED AGAIN, AND THE FOLLOWING BLOCKS
-            //     init_max_nonce,
-            //     init_leading_zeros,)
-
             let j = serde_json::to_string(&bc.blocks).unwrap();
-            // println!("{}", j);
+
             file.write_all(j.as_ref()).expect("Cannot write the file");
             ("HTTP/1.1 200 OK\r\n\r\n", "./output.json")
 
@@ -362,7 +349,8 @@ fn main() {
                 "HTTP/1.1 200 OK\r\n\r\n",
                 "./output.json",
             )
-        };
+        }; 
+        
         // Compile and return content
         let contents = fs::read_to_string(filename).unwrap();
         let response = format!("{}{}", status_line, contents);
