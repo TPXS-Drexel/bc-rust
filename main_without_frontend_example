@@ -1,0 +1,59 @@
+fn main() {
+    //INPUTS
+    let leading_zeros: u64 = 3;
+    let max_nonce = 1_000_000;
+    let input = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
+    //END INPUTS
+    let before = Instant::now();
+    let mut nonce_vec: Vec<u64> = create_nonce_vec(max_nonce);
+    let vector_creation_time = before.elapsed();
+
+    println!("Vector Creation Time: {:2?}", vector_creation_time);
+    let mut rv = &mut nonce_vec;
+    let rr1 = &mut rv;
+    //let input = "";
+    let before = Instant::now();
+    let prev_hash = Sha256Hash::default(); //genesis block
+    let nonce = find_nonce(input, prev_hash, rr1 , leading_zeros);
+    let elapsed = before.elapsed();
+    println!("old hash: {}", hash_without_nonce_string(input, prev_hash));
+    println!("nonce: {}", nonce);
+    println!("nonced hash: {}", nonced_hash_string(input, prev_hash, nonce));
+    println!("Time: {:2?}", elapsed);
+    let input = "trevor";
+    let prev_hash = hash_without_nonce(input, prev_hash);
+    let before = Instant::now();
+    let nonce = find_nonce(input, prev_hash, rr1 , leading_zeros);
+    println!("old hash: {}", hash_without_nonce_string(input, prev_hash));
+    let elapsed = before.elapsed();
+    
+    println!("Nonce: {:?}", nonce);
+    println!("Time: {:2?}", elapsed);
+    println!("nonced hash: {}", nonced_hash_string(input, prev_hash, nonce));
+
+    //demo of functions above ^^
+
+    //ACTUAL USE OF FUNCTIONS:
+    //TAKE FIRST INPUT
+    //MATCH STATEMENT FOR LEADING ZEROS CHANGED
+    let mut bc = Blockchain::new(input);
+
+    //todo: make threads for server i/o
+
+    //BEGIN A LOOP
+    let blocka = &mut bc.blocks[0];
+    //SOME MATCH STATEMENT
+    let mined = Block::mine_block(blocka, max_nonce, leading_zeros);
+
+
+    println!("{:?}", blocka);
+
+    Blockchain::add_block(&mut bc, "block2", max_nonce, leading_zeros);
+    let blockb = &mut bc.blocks[1];
+    let mined = Block::mine_block(blockb, max_nonce, leading_zeros);
+    println!("{:?}", mined);
+    println!("{:?}", hex::encode(mined.hash));
+
+    //to change to hex 
+    
+}
