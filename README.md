@@ -1,8 +1,10 @@
 # bc-rust
 ### Instruction on how to run:
-- git clone blake's branch
-- cargo build + cargo run
-- open "localhost:8080" in any browser (preferabbly Chrome, some functions might break in IE, but really I trust you not to use IE). 
+- git clone main branch
+In the project directory:
+- sudo docker build . -t rust_bc:v2 
+- docker run -d -p 80:8080 rust_bc:v2
+- open "localhost:80" in any browser (preferabbly Chrome/Safari, some functions might break in IE, but really I trust you not to use IE). 
 - on the browser, start creating new block, change preference .etc
 
 ### How everything is connected together: 
