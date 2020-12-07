@@ -13,3 +13,6 @@
 
 
 
+### Docker Steps:
+- sudo docker build . -t rust_bc:v2 
+- docker run -d -p 80:8080 rust_bc:v2
